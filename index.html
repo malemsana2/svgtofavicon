@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to Favicon Pro | Browser-Based Asset Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .drop-zone { border: 2px dashed #e2e8f0; transition: all 0.3s ease; }
+        .drop-zone.active { border-color: #3b82f6; background-color: #eff6ff; }
+        .gradient-text { background: linear-gradient(135deg, #1e40af, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .preview-grid::-webkit-scrollbar { height: 6px; }
+        .preview-grid::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        pre { font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 py-4 px-6 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <i class="fas fa-shapes"></i>
+                </div>
+                <span class="font-bold text-slate-800 text-xl tracking-tight">IconGen<span class="text-blue-600">.io</span></span>
+            </div>
+            <div class="hidden md:flex gap-6 text-slate-500 font-medium text-sm">
+                <a href="#" class="hover:text-blue-600 transition">How it works</a>
+                <a href="#" class="hover:text-blue-600 transition">Support</a>
+                <a href="https://github.com" class="hover:text-blue-600 transition"><i class="fab fa-github"></i> GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="flex-grow flex flex-col items-center px-4 pt-12 pb-24">
+        <div class="max-w-3xl w-full text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
+                Convert <span class="gradient-text">SVG to Favicons</span> 
+            </h1>
+            <p class="text-slate-600 text-lg">
+                Generate professional browser assets, multi-resolution .ico files, and HTML snippets instantly. 100% private, runs entirely in your browser.
+            </p>
+        </div>
+
+        <!-- Tool Card -->
+        <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100">
+            
+            <!-- Upload Area -->
+            <div id="dropZone" class="drop-zone rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer mb-6 group">
+                <input type="file" id="fileInput" class="hidden" accept=".svg">
+                <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-800 mb-1">Upload your SVG</h3>
+                <p class="text-slate-400 text-sm">Drag and drop or click to browse</p>
+            </div>
+
+            <!-- File Info & Reset -->
+            <div id="filePreview" class="hidden border border-slate-100 rounded-lg p-4 mb-6 flex items-center gap-4 bg-slate-50/50">
+                <div id="svgPreview" class="w-12 h-12 bg-white rounded border border-slate-200 flex items-center justify-center overflow-hidden p-1"></div>
+                <div class="flex-grow">
+                    <p id="fileName" class="text-sm font-semibold text-slate-700 truncate max-w-[200px]">logo.svg</p>
+                    <p class="text-xs text-slate-400">SVG verified</p>
+                </div>
+                <button id="resetBtn" class="text-slate-400 hover:text-red-500 transition px-2">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+
+            <!-- Pre-Download ZIP Preview Section -->
+            <div id="zipPreviewSection" class="hidden mb-8 space-y-6 animate-in fade-in duration-500">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-archive text-blue-500"></i>
+                    <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Inside your ZIP package</h4>
+                </div>
+
+                <!-- PNG Grid -->
+                <div id="pngPreviewGrid" class="preview-grid flex gap-4 overflow-x-auto pb-4">
+                    <!-- Dynamic PNG previews will go here -->
+                </div>
+
+                <!-- HTML Preview -->
+                <div class="rounded-lg bg-slate-900 p-4 relative group">
+                    <span class="absolute right-3 top-3 text-[10px] text-slate-500 font-bold uppercase">header_tags.txt</span>
+                    <pre id="htmlSnippetPreview" class="text-xs text-blue-300 leading-relaxed overflow-x-auto"></pre>
+                </div>
+            </div>
+
+            <button id="generateBtn" disabled class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg flex items-center justify-center gap-2">
+                <span>Download .ZIP Package</span>
+                <i class="fas fa-download text-xs"></i>
+            </button>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="hidden mt-8 flex items-center gap-3 text-blue-600 font-medium">
+            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Building your icons...
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-10">
+        <div class="max-w-5xl mx-auto px-6 text-center text-slate-400 text-xs">
+            <p>Runs entirely in-browser using HTML5 Canvas & JSZip. No data leaves your device.</p>
+        </div>
+    </footer>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const filePreview = document.getElementById('filePreview');
+        const fileNameDisplay = document.getElementById('fileName');
+        const svgPreviewContainer = document.getElementById('svgPreview');
+        const generateBtn = document.getElementById('generateBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const loader = document.getElementById('loader');
+        const zipPreviewSection = document.getElementById('zipPreviewSection');
+        const pngPreviewGrid = document.getElementById('pngPreviewGrid');
+        const htmlSnippetPreview = document.getElementById('htmlSnippetPreview');
+
+        let currentSvgData = null;
+        let generatedBlobs = {};
+
+        const resolutions = [16, 32, 48, 64, 128, 180, 192, 512];
+
+        // Interaction Handlers
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('active');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            handleFile(e.dataTransfer.files[0]);
+        };
+
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        resetBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentSvgData = null;
+            generatedBlobs = {};
+            fileInput.value = '';
+            filePreview.classList.add('hidden');
+            zipPreviewSection.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+            generateBtn.disabled = true;
+        };
+
+        async function handleFile(file) {
+            if (!file || !file.name.endsWith('.svg')) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                currentSvgData = e.target.result;
+                fileNameDisplay.innerText = file.name;
+                svgPreviewContainer.innerHTML = currentSvgData;
+                filePreview.classList.remove('hidden');
+                dropZone.classList.add('hidden');
+                
+                // Show instant preview of what will be in the zip
+                await updateZipPreview();
+                
+                zipPreviewSection.classList.remove('hidden');
+                generateBtn.disabled = false;
+            };
+            reader.readAsText(file);
+        }
+
+        async function updateZipPreview() {
+            pngPreviewGrid.innerHTML = '';
+            generatedBlobs = {};
+
+            // 1. Generate PNG Previews
+            for (const res of resolutions) {
+                const blob = await svgToPng(currentSvgData, res);
+                generatedBlobs[res] = blob;
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = "flex-shrink-0 flex flex-col items-center gap-2";
+                
+                const imgContainer = document.createElement('div');
+                imgContainer.className = "w-16 h-16 bg-slate-50 border border-slate-100 rounded flex items-center justify-center overflow-hidden p-1";
+                
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(blob);
+                img.className = "max-w-full max-h-full object-contain";
+                
+                const label = document.createElement('span');
+                label.className = "text-[10px] font-medium text-slate-500";
+                label.innerText = `${res}x${res}`;
+                
+                imgContainer.appendChild(img);
+                wrapper.appendChild(imgContainer);
+                wrapper.appendChild(label);
+                pngPreviewGrid.appendChild(wrapper);
+            }
+
+            // 2. ICO Placeholder Preview
+            const icoWrapper = document.createElement('div');
+            icoWrapper.className = "flex-shrink-0 flex flex-col items-center gap-2 opacity-80";
+            icoWrapper.innerHTML = `
+                <div class="w-16 h-16 bg-blue-50 border border-blue-100 rounded flex flex-col items-center justify-center">
+                    <i class="fas fa-file-image text-blue-400 text-xl"></i>
+                </div>
+                <span class="text-[10px] font-bold text-blue-500">favicon.ico</span>
+            `;
+            pngPreviewGrid.prepend(icoWrapper);
+
+            // 3. HTML Code Preview
+            const htmlSnippet = `<link rel="icon" href="/favicon.ico" sizes="any">\n<link rel="icon" href="/icon-32x32.png" type="image/png">\n<link rel="apple-touch-icon" href="/icon-180x180.png">\n<link rel="icon" href="/icon-192x192.png" sizes="192x192">\n<link rel="icon" href="/icon-512x512.png" sizes="512x512">`;
+            htmlSnippetPreview.innerText = htmlSnippet;
+        }
+
+        generateBtn.onclick = async () => {
+            loader.classList.remove('hidden');
+            generateBtn.disabled = true;
+
+            try {
+                const zip = new JSZip();
+                
+                // Add PNGs
+                for (const res of resolutions) {
+                    zip.file(`icon-${res}x${res}.png`, generatedBlobs[res]);
+                }
+
+                // Generate ICO
+                const icoBlob = await generateIcoBinary([
+                    { size: 16, blob: generatedBlobs[16] },
+                    { size: 32, blob: generatedBlobs[32] },
+                    { size: 48, blob: generatedBlobs[48] }
+                ]);
+                zip.file("favicon.ico", icoBlob);
+
+                // Add HTML Snippet
+                const htmlText = `<!-- COPY THESE INTO YOUR <HEAD> TAG -->\n\n` + htmlSnippetPreview.innerText;
+                zip.file("header_tags.txt", htmlText);
+
+                const content = await zip.generateAsync({type: "blob"});
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(content);
+                link.download = `favicon-package-${Date.now()}.zip`;
+                link.click();
+
+            } catch (err) {
+                alert("Generation failed.");
+            } finally {
+                loader.classList.add('hidden');
+                generateBtn.disabled = false;
+            }
+        };
+
+        async function svgToPng(svgData, size) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const url = URL.createObjectURL(blob);
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, size, size);
+                    canvas.toBlob((b) => {
+                        URL.revokeObjectURL(url);
+                        resolve(b);
+                    }, 'image/png');
+                };
+                img.src = url;
+            });
+        }
+
+        async function generateIcoBinary(sources) {
+            const buffers = await Promise.all(sources.map(async s => ({
+                size: s.size,
+                data: new Uint8Array(await s.blob.arrayBuffer())
+            })));
+            const headerSize = 6, directorySize = 16 * buffers.length;
+            let currentOffset = headerSize + directorySize;
+            const totalSize = currentOffset + buffers.reduce((acc, b) => acc + b.data.length, 0);
+            const output = new Uint8Array(totalSize);
+            const view = new DataView(output.buffer);
+            view.setUint16(2, 1, true); // Type ICO
+            view.setUint16(4, buffers.length, true);
+            buffers.forEach((b, i) => {
+                const entryPos = headerSize + (i * 16);
+                view.setUint8(entryPos, b.size);
+                view.setUint8(entryPos + 1, b.size);
+                view.setUint16(entryPos + 4, 1, true);
+                view.setUint16(entryPos + 6, 32, true);
+                view.setUint32(entryPos + 8, b.data.length, true);
+                view.setUint32(entryPos + 12, currentOffset, true);
+                output.set(b.data, currentOffset);
+                currentOffset += b.data.length;
+            });
+            return new Blob([output], {type: 'image/x-icon'});
+        }
+    </script>
+</body>
+</html>
